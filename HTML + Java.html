@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slot Machine Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="slot">
+  <!-- La grille de fruits sera générée dynamiquement par JavaScript -->
+</div>
+
+<button class="spin-button">Spin</button>
+<div class="balance">Balance: €100.00</div>
+<div class="bet">Bet: €0.10</div>
+<div class="bet-buttons">
+  <button class="bet-button" data-value="0.10">€0.10</button>
+  <button class="bet-button" data-value="0.50">€0.50</button>
+  <button class="bet-button" data-value="1.00">€1.00</button>
+  <button class="bet-button" data-value="5.00">€5.00</button>
+</div>
+
+<script>
+  // // Déclaration des variables
+const fruits = ['apple', 'banana', 'cherry', 'orange', 'grape', 'watermelon'];
+const slot = document.querySelector('.slot');
+const spinButton = document.querySelector('.spin');
+const balanceDisplay = document.querySelector('.balance');
+const betDisplay = document.querySelector('.bet');
+let balance = 100; // Solde initial
+let betAmount = 0.10; // Mise initiale
+let score = 0; // Variable pour suivre le score
+
+// Fonction pour obtenir un fruit aléatoire avec une valeur dégressive
+function getRandomFruit() {
+  const randomIndex = Math.floor(Math.random() * fruits.length);
+  return {
+    fruit: fruits[randomIndex],
+    value: fruits.length - randomIndex // Valeur dégressive
+  };
+}
+
+// Fonction pour créer une grille de fruits
+function createGrid() {
+  slot.innerHTML = ''; // Efface la grille existante
+  for (let i = 0; i < 7; i++) {
+    const row = document.createElement('div');
+    row.classList.add('row');
+    for (let j = 0; j < 7; j++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      const fruit = getRandomFruit();
+      cell.style.backgroundImage = `url('${fruit.fruit}.png')`;
+      cell.setAttribute('data-value', fruit.value);
+      row.appendChild(cell);
+    }
+    slot.appendChild(row);
+  }
+}
+
+// Fonction pour faire tourner les rouleaux
+function spinReels() {
+  // Vérifier si la mise est valide
+  if (balance < betAmount) {
+    alert('Insufficient balance! Please lower your bet.');
+    return;
+  }
+
+  // Déduire la mise du solde
+  balance -= betAmount;
+  updateBalanceDisplay();
+
+  // Créer une nouvelle grille de fruits
+  createGrid();
+
+  // Animation des rouleaux
+  animateReels();
+
+  // Calcul du total des valeurs des fruits sur la première colonne
+  let totalValue = 0;
+  const firstColumn = document.querySelectorAll('.cell:nth-child(1)');
+  firstColumn.forEach(cell => {
+    const value = parseInt(cell.getAttribute('data-value'));
+    totalValue += value;
+  });
+
+  // Gérer les gains et pertes
+  handleWinsLosses(totalValue);
+
+  // Réinitialiser la mise pour le prochain tour
+  betAmount = 0.10;
+
+  // Mettre à jour l'affichage de la mise
+  updateBetDisplay();
+}
+
+// Fonction pour animer les rouleaux
+function animateReels() {
+  // Ajouter une animation pour que les rouleaux descendent vers le bas
+  // Vous pouvez implémenter cette animation en utilisant CSS ou JavaScript selon votre préférence.
+}
+
+// Fonction pour gérer les gains et les pertes
+function handleWinsLosses(totalValue) {
+  // Vérification des bonus
+  let scatterCount = 0;
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach(cell => {
+    if (cell.getAttribute('data-value') === '6') { // Scatter
+      scatterCount++;
+      cell.style.border = '2px solid gold'; // Entourer le fruit de doré
+    }
+  });
+
+  if (scatterCount >= 3) {
+    alert('Congratulations! You got the bonus!');
+    score += 50; // Ajoute un bonus de 50 au score
+  }
+
+  // Vérification des jokers
+  for (let i = 0; i < cells.length; i++) {
+    const currentFruit = cells[i].getAttribute('data-value');
+    let count = 1;
+    for (let j = i + 1; j < cells.length; j++) {
+      if (cells[j].getAttribute('data-value') === currentFruit) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    if (count >= 5) { // Joker si au moins 5 symboles identiques
+      totalValue += 100; // Ajoute la valeur du joker
+      break;
+    }
+  }
+
+  // Calculer le gain total et le mettre à jour
+  score += totalValue;
+  balance += score;
+  updateBalanceDisplay();
+
+  // Afficher le score
+  alert(`Your score: ${score}`);
+
+  // Réinitialiser le score pour le prochain tour
+  score = 0;
+}
+
+// Fonction pour mettre à jour l'affichage du solde
+function updateBalanceDisplay() {
+  balanceDisplay.textContent = `Balance: €${balance.toFixed(2)}`;
+}
+
+// Fonction pour mettre à jour l'affichage de la mise
+function updateBetDisplay() {
+  betDisplay.textContent = `Bet: €${betAmount.toFixed(2)}`;
+}
+
+// Écouteur d'événement pour le bouton "Spin"
+spinButton.addEventListener('click', spinReels);
+
+// Ajouter des écouteurs d'événements pour les boutons de mise
+const betButtons = document.querySelectorAll('.bet-button');
+betButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const betValue = parseFloat(button.dataset.value);
+    if (betValue > balance) {
+      alert('Insufficient balance! Please lower your bet.');
+    } else {
+      betAmount = betValue;
+      updateBetDisplay();
+    }
+  });
+});
